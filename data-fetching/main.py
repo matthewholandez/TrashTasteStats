@@ -7,8 +7,8 @@ import airtable
 
 with open('config.yaml', 'r', encoding='utf-8') as config_file:
     CONFIG = yaml.safe_load(config_file)
-API_KEY = CONFIG['api-key']
-CHANNEL_ID = CONFIG['channel-id']
+API_KEY = CONFIG['youtube']['api-key']
+CHANNEL_ID = CONFIG['youtube']['channel-id']
 
 # Build the YouTube API client
 youtube = build('youtube', 'v3', developerKey=API_KEY)
@@ -74,15 +74,18 @@ def get_video_details(video_ids):
         )
         response = request.execute()
         for item in response['items']:
+            category, episode_number = categorize_video(item['snippet']['title'])
+            title = clean_title(item['snippet']['title'])
             video_data = {
+                'Title': title,
+                'Number': episode_number,
                 'URL': f"https://www.youtube.com/watch?v={item['id']}",
-                'Title': item['snippet']['title'],
                 'Duration': item['contentDetails']['duration'],
                 'Date': item['snippet']['publishedAt'],
                 'Views': int(item['statistics'].get('viewCount', 0)),
                 'Likes': int(item['statistics'].get('likeCount', 0)),
-                'Number of Comments': int(item['statistics'].get('commentCount', 0)),
-                'Category': categorize_video(item['snippet']['title'])
+                'Comments': int(item['statistics'].get('commentCount', 0)),
+                'Category': category,
             }
             videos.append(video_data)
     return videos
@@ -90,13 +93,18 @@ def get_video_details(video_ids):
 # Function to categorize video based on title
 def categorize_video(title):
     if "Trash Taste Special" in title:
-        return "Special"
+        return "Special", None
     elif "#shorts" in title:
-        return "Short"
+        return "Short", None
     elif re.search(r'#\d+$', title):
-        return "Episode"
+        episode_number = re.search(r'#(\d+)$', title).group(1)
+        return "Episode", episode_number
     else:
-        return "Uncategorized"
+        return "Uncategorized", None
+
+# Remove the last 4 words of title
+def clean_title(title):
+    return ' '.join(title.split()[:-4])
 
 # Function to append new data to the top of a CSV file
 def append_to_csv(file_name, new_data):
