@@ -27,7 +27,7 @@ def classify_video(row, special):
     """Classifies video into special, guest or regular episode"""
     if special:
         video_type = "Special"
-    elif "ft. " in row['Title']:
+    elif "ft. " in row.Title:
         video_type = "Guest"
     else:
         video_type = "Regular"
@@ -43,25 +43,25 @@ def push_csv_data_to_airtable(csv_file, special):
     existing_urls = [record['fields']['URL'] for record in existing_records]
 
     # Iterate through DataFrame rows and push data to Airtable if URL doesn't exist
-    for index, row in df.iterrows():
-        if row['URL'] not in existing_urls:
+    for row in df.itertuples(index=False):
+        if row.URL not in existing_urls:
             record_data = {
-                'URL': row['URL'],
-                'Number': None if math.isnan(row['Number']) else row['Number'],
-                'Title': row['Title'],
-                'Duration': convert_duration(row['Duration']),
-                'Date': row['Date'],
-                'Views': row['Views'],
-                'Likes': row['Likes'],
-                'Comments': row['Comments'],
+                'URL': row.URL,
+                'Number': None if math.isnan(row.Number) else row.Number,
+                'Title': row.Title,
+                'Duration': convert_duration(row.Duration),
+                'Date': row.Date,
+                'Views': row.Views,
+                'Likes': row.Likes,
+                'Comments': row.Comments,
                 'Special/Guest': classify_video(row, special),
             }
             # Insert record into Airtable
             table.create(record_data)
         else:
-            print(f"Record with URL {row['URL']} already exists in Airtable. Skipping insertion.")
+            print(f"Record with URL {row.URL} already exists in Airtable. Skipping insertion.")
 
-def main():    
+def main():
     """Main function"""
     # For specials
     push_csv_data_to_airtable('specials.csv', special=True)

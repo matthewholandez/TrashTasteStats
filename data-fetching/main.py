@@ -1,3 +1,6 @@
+"""
+Handle data collection via the YouTube API
+"""
 import re
 from datetime import datetime
 
@@ -44,13 +47,13 @@ def get_recent_video_ids(channel_id, published_after):
     while response:
         for item in response['items']:
             published_at = item['snippet']['publishedAt']
-            if (item['id']['kind'] == 'youtube#video' and 
+            if (item['id']['kind'] == 'youtube#video' and
                 published_at > published_after.isoformat() + 'Z'):
                 video_ids.append({
                     'videoId': item['id']['videoId'],
                     'publishedAt': published_at
                 })
-        
+
         if 'nextPageToken' in response:
             request = youtube.search().list(
                 part='id,snippet',
@@ -101,8 +104,7 @@ def categorize_video(title):
     if re.search(r'#\d+$', title):
         episode_number = re.search(r'#(\d+)$', title).group(1)
         return "Episode", episode_number
-    else:
-        return "Regular", None
+    return "Regular", None
 
 def clean_title(title):
     """Remove the last 4 words from the title."""
