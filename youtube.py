@@ -20,7 +20,7 @@ youtube = build('youtube', 'v3', developerKey=API_KEY)
 def get_last_processed_date():
     """Get last processed date."""
     try:
-        with open('last_processed.txt', 'r', encoding='utf-8') as file:
+        with open('./data/last_processed.txt', 'r', encoding='utf-8') as file:
             last_processed_date = file.readline().strip()
             return datetime.strptime(last_processed_date, '%Y-%m-%dT%H:%M:%SZ')
     except FileNotFoundError:
@@ -28,7 +28,7 @@ def get_last_processed_date():
 
 def update_last_processed_date(date):
     """Update last processed date."""
-    with open('last_processed.txt', 'w', encoding='utf-8') as file:
+    with open('./data/last_processed.txt', 'w', encoding='utf-8') as file:
         file.write(date)
 
 def get_recent_video_ids(channel_id, published_after):
@@ -70,7 +70,9 @@ def get_recent_video_ids(channel_id, published_after):
     return video_ids
 
 def get_video_details(video_ids):
-    """From video IDs, get video details."""
+    """
+    From a list of video IDs, get all video details for each.
+    """
     videos = []
     for i in range(0, len(video_ids), 50):
         request = youtube.videos().list(
@@ -94,6 +96,22 @@ def get_video_details(video_ids):
             }
             videos.append(video_data)
     return videos
+
+def get_youtube_video_stats(id):
+    """
+    From one video ID, get the view count, like count, and comment count.
+    """
+    request = youtube.videos().list(part='statistics', id=id)
+    response = request.execute()
+    if response['items']:
+        stats = response['items'][0]['statistics']
+        views = int(stats.get('viewCount', 0))
+        likes = int(stats.get('likeCount', 0))
+        comments = int(stats.get('commentCount', 0))
+        return views, likes, comments
+    else:
+        return None, None, None
+
 
 def categorize_video(title):
     """Categorize a video from the title."""
@@ -145,11 +163,11 @@ def main():
     episodes = [video for video in video_details if video['Category'] == 'Episode']
 
     if specials:
-        append_to_csv('specials.csv', specials)
+        append_to_csv('./data/specials.csv', specials)
     if shorts:
-        append_to_csv('shorts.csv', shorts)
+        append_to_csv('./data/shorts.csv', shorts)
     if episodes:
-        append_to_csv('episodes.csv', episodes)
+        append_to_csv('./data/episodes.csv', episodes)
 
     print("New video data appended to CSV files.")
 

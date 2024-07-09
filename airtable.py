@@ -33,6 +33,27 @@ def classify_video(row, special):
         video_type = "Regular"
     return video_type
 
+def get_video_id_from_url(url):
+    return url.split('watch?v=')[-1]
+
+def update_video_stats_in_airtable():
+    from youtube import get_youtube_video_stats
+    existing_records = table.all(fields=['URL', 'Views', 'Likes', 'Comments'])
+    for record in existing_records:
+        url = record['fields']['URL']
+        views, likes, comments = get_youtube_video_stats(get_video_id_from_url(url))     
+        if views is not None and likes is not None and comments is not None:
+            table.update(record['id'], {
+                'Views': views,
+                'Likes': likes,
+                'Comments': comments
+            })
+            print(f"Updated record with URL {url}")
+        else:
+            print(f"Could not retrieve stats for URL {url}")
+    else:
+        print("Updated all existing records in Airtable")
+
 def push_csv_data_to_airtable(csv_file, special):
     """Pushes data to Airtable from each CSV"""
     # Read CSV file into a pandas DataFrame
@@ -41,6 +62,7 @@ def push_csv_data_to_airtable(csv_file, special):
     # Get existing record URLs from Airtable to check against
     existing_records = table.all(fields=['URL'])
     existing_urls = [record['fields']['URL'] for record in existing_records]
+    update_video_stats_in_airtable()
 
     # Iterate through DataFrame rows and push data to Airtable if URL doesn't exist
     for row in df.itertuples(index=False):
@@ -64,11 +86,11 @@ def push_csv_data_to_airtable(csv_file, special):
 def main():
     """Main function"""
     # For specials
-    push_csv_data_to_airtable('specials.csv', special=True)
+    push_csv_data_to_airtable('./data/specials.csv', special=True)
     print('Pushed specials to Airtable.')
 
     # For regular videos
-    push_csv_data_to_airtable('episodes.csv', special=False)
+    push_csv_data_to_airtable('./data/episodes.csv', special=False)
     print('Pushed regular videos to Airtable.')
 
 if __name__ == "__main__":
