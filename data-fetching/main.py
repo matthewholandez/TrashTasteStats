@@ -1,7 +1,8 @@
-from googleapiclient.discovery import build
-import pandas as pd
 import re
 from datetime import datetime
+
+from googleapiclient.discovery import build
+import pandas as pd
 import yaml
 import airtable
 
@@ -13,22 +14,22 @@ CHANNEL_ID = CONFIG['youtube']['channel-id']
 # Build the YouTube API client
 youtube = build('youtube', 'v3', developerKey=API_KEY)
 
-# Function to get the last processed date
 def get_last_processed_date():
+    """Get last processed date."""
     try:
-        with open('last_processed.txt', 'r') as file:
+        with open('last_processed.txt', 'r', encoding='utf-8') as file:
             last_processed_date = file.readline().strip()
             return datetime.strptime(last_processed_date, '%Y-%m-%dT%H:%M:%SZ')
     except FileNotFoundError:
         return None
 
-# Function to update the last processed date
 def update_last_processed_date(date):
-    with open('last_processed.txt', 'w') as file:
+    """Update last processed date."""
+    with open('last_processed.txt', 'w', encoding='utf-8') as file:
         file.write(date)
 
-# Function to get recent video IDs from a channel
 def get_recent_video_ids(channel_id, published_after):
+    """Get recent video IDs from a channel."""
     video_ids = []
     request = youtube.search().list(
         part='id,snippet',
@@ -38,12 +39,13 @@ def get_recent_video_ids(channel_id, published_after):
         publishedAfter=published_after.isoformat() + 'Z',
         type='video'
     )
-    
+
     response = request.execute()
     while response:
         for item in response['items']:
             published_at = item['snippet']['publishedAt']
-            if item['id']['kind'] == 'youtube#video' and published_at > published_after.isoformat() + 'Z':
+            if (item['id']['kind'] == 'youtube#video' and 
+                published_at > published_after.isoformat() + 'Z'):
                 video_ids.append({
                     'videoId': item['id']['videoId'],
                     'publishedAt': published_at
@@ -64,8 +66,8 @@ def get_recent_video_ids(channel_id, published_after):
             break
     return video_ids
 
-# Function to get video details by video ID
 def get_video_details(video_ids):
+    """From video IDs, get video details."""
     videos = []
     for i in range(0, len(video_ids), 50):
         request = youtube.videos().list(
@@ -90,24 +92,24 @@ def get_video_details(video_ids):
             videos.append(video_data)
     return videos
 
-# Function to categorize video based on title
 def categorize_video(title):
+    """Categorize a video from the title."""
     if "Trash Taste Special" in title:
         return "Special", None
-    elif "#shorts" in title:
+    if "#shorts" in title:
         return "Short", None
-    elif re.search(r'#\d+$', title):
+    if re.search(r'#\d+$', title):
         episode_number = re.search(r'#(\d+)$', title).group(1)
         return "Episode", episode_number
     else:
-        return "Uncategorized", None
+        return "Regular", None
 
-# Remove the last 4 words of title
 def clean_title(title):
+    """Remove the last 4 words from the title."""
     return ' '.join(title.split()[:-4])
 
-# Function to append new data to the top of a CSV file
 def append_to_csv(file_name, new_data):
+    """Append new data to the top of the CSV."""
     try:
         existing_data = pd.read_csv(file_name)
         updated_data = pd.concat([pd.DataFrame(new_data), existing_data], ignore_index=True)
@@ -115,8 +117,8 @@ def append_to_csv(file_name, new_data):
         updated_data = pd.DataFrame(new_data)
     updated_data.to_csv(file_name, index=False)
 
-# Main script logic
 def main():
+    """Main script."""
     last_processed_date = get_last_processed_date()
     if not last_processed_date:
         last_processed_date = datetime(2000, 1, 1)  # Default to an old date if not found

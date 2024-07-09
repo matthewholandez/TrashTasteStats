@@ -1,6 +1,10 @@
+"""
+Interfaces with Airtable to sync local CSV with remote data
+"""
+import math
+
 from pyairtable import Api
 import pandas as pd
-import math
 import yaml
 
 # Airtable credentials and base information
@@ -14,13 +18,23 @@ TABLE_ID = CONFIG['airtable']['table-id']
 api = Api(API_KEY)
 table = api.table(BASE_ID, TABLE_ID)
 
-# Function to convert ISO 8601 duration to h:mm:ss format
 def convert_duration(duration_string):
+    """Converts ISO 8601 duration to seconds"""
     duration = pd.Timedelta(duration_string).total_seconds()
     return duration
 
-# Function to push new data from CSV to Airtable
+def classify_video(row, special):
+    """Classifies video into special, guest or regular episode"""
+    if special:
+        video_type = "Special"
+    elif "ft. " in row['Title']:
+        video_type = "Guest"
+    else:
+        video_type = "Regular"
+    return video_type
+
 def push_csv_data_to_airtable(csv_file, special):
+    """Pushes data to Airtable from each CSV"""
     # Read CSV file into a pandas DataFrame
     df = pd.read_csv(csv_file)
 
@@ -40,15 +54,15 @@ def push_csv_data_to_airtable(csv_file, special):
                 'Views': row['Views'],
                 'Likes': row['Likes'],
                 'Comments': row['Comments'],
-                'Special/Guest': "Special" if special else "Guest" if ("ft. " in row['Title']) else "Regular",
+                'Special/Guest': classify_video(row, special),
             }
             # Insert record into Airtable
             table.create(record_data)
         else:
             print(f"Record with URL {row['URL']} already exists in Airtable. Skipping insertion.")
 
-# Push data from each CSV file to Airtable
 def main():    
+    """Main function"""
     # For specials
     push_csv_data_to_airtable('specials.csv', special=True)
     print('Pushed specials to Airtable.')
