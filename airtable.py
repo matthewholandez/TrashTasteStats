@@ -7,6 +7,8 @@ from pyairtable import Api
 import pandas as pd
 import yaml
 
+from tqdm import tqdm
+
 # Airtable credentials and base information
 with open('config.yaml', 'r', encoding='utf-8') as config_file:
     CONFIG = yaml.safe_load(config_file)
@@ -39,7 +41,7 @@ def get_video_id_from_url(url):
 def update_video_stats_in_airtable():
     from youtube import get_youtube_video_stats
     existing_records = table.all(fields=['URL', 'Views', 'Likes', 'Comments'])
-    for record in existing_records:
+    for record in tqdm(existing_records, desc="Updating existing records"):
         url = record['fields']['URL']
         views, likes, comments = get_youtube_video_stats(get_video_id_from_url(url))     
         if views is not None and likes is not None and comments is not None:
@@ -48,7 +50,6 @@ def update_video_stats_in_airtable():
                 'Likes': likes,
                 'Comments': comments
             })
-            print(f"Updated record with URL {url}")
         else:
             print(f"Could not retrieve stats for URL {url}")
     else:
@@ -65,7 +66,7 @@ def push_csv_data_to_airtable(csv_file, special):
     update_video_stats_in_airtable()
 
     # Iterate through DataFrame rows and push data to Airtable if URL doesn't exist
-    for row in df.itertuples(index=False):
+    for row in tqdm(df.itertuples(index=False), desc="Inserting new records"):
         if row.URL not in existing_urls:
             record_data = {
                 'URL': row.URL,
