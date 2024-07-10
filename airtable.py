@@ -63,7 +63,6 @@ def push_csv_data_to_airtable(csv_file, special):
     # Get existing record URLs from Airtable to check against
     existing_records = table.all(fields=['URL'])
     existing_urls = [record['fields']['URL'] for record in existing_records]
-    update_video_stats_in_airtable()
 
     # Iterate through DataFrame rows and push data to Airtable if URL doesn't exist
     for row in tqdm(df.itertuples(index=False), desc="Inserting new records"):
@@ -86,6 +85,9 @@ def push_csv_data_to_airtable(csv_file, special):
 
 def main():
     """Main function"""
+    # For existing videos
+    update_video_stats_in_airtable()
+
     # For specials
     push_csv_data_to_airtable('./data/specials.csv', special=True)
     print('Pushed specials to Airtable.')
